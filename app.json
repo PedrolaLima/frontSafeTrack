@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Safe Track",
+    "slug": "Safe-Track",
+    "version": "1.0.0",
+    "jsEngine": "hermes",
+    "orientation": "portrait",
+    "icon": "./assets/images/icons/icon.png",
+    "userInterfaceStyle": "automaticmMKr",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icon/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#00000"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon/adaptive-icon.png",
+        "backgroundColor": "#00000"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
