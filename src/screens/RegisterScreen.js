@@ -1,27 +1,39 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 
-export default function LoginScreen({ navigation }) {
+export default function RegisterScreen({ navigation }) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  const handleLogin = () => {
-    console.log('Email:', email);
-    console.log('Password:', password);
-    navigation.navigate('Welcome');
-  };
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleRegister = () => {
-    navigation.navigate('Register');
+    console.log('Name:', name);
+    console.log('Email:', email);
+    console.log('Password:', password);
+    console.log('Confirm Password:', confirmPassword);
+
+    // Lógica de registro aqui
+    navigation.navigate('Login'); // Redireciona para a Home após o registro
+  };
+
+  const handleGoToLogin = () => {
+    navigation.navigate('Login'); // Redireciona para a tela de login
   };
 
   return (
     <View style={styles.container}>
       <Image source={require('../../assets/images/logos/logo.png')} style={styles.logo} />
-      <Text style={styles.brand}>SafeTrack</Text>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Cadastro</Text>
       <View style={styles.card}>
-        <Text style={styles.label}>Logar</Text>
+        <Text style={styles.label}>Cadastro</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Nome"
+          placeholderTextColor="#aaa"
+          value={name}
+          onChangeText={setName}
+        />
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -39,14 +51,19 @@ export default function LoginScreen({ navigation }) {
           onChangeText={setPassword}
           secureTextEntry
         />
-        <TouchableOpacity>
-          <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmar Senha"
+          placeholderTextColor="#aaa"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+        />
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Cadastrar</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Logar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={handleRegister}>
-          <Text style={[styles.buttonText, styles.registerButtonText]}>Cadastrar</Text>
+        <TouchableOpacity style={[styles.button, styles.loginButton]} onPress={handleGoToLogin}>
+          <Text style={[styles.buttonText, styles.loginButtonText]}>Já tenho uma conta</Text>
         </TouchableOpacity>
       </View>
       <Text style={styles.footer}>© 2023 SafeTrack. All rights reserved.</Text>
@@ -63,14 +80,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 10,
-  },
-  brand: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#000',
+    width: 100,
+    height: 100,
     marginBottom: 20,
   },
   title: {
@@ -106,11 +117,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  forgotPassword: {
-    color: '#007BFF',
-    textAlign: 'right',
-    marginBottom: 15,
-  },
   button: {
     width: '100%',
     height: 50,
@@ -125,12 +131,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  registerButton: {
+  loginButton: {
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#000',
   },
-  registerButtonText: {
+  loginButtonText: {
     color: '#000',
   },
   footer: {
