@@ -3,15 +3,14 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function WelcomeScreen({ navigation }) {
   const handleContinue = () => {
-    // Espaço reservado para lógica futura
-    console.log('Continuar para o app');
-    navigation.navigate('Home'); 
+    // Navega para o DrawerNavigator, que começa na Home
+    navigation.replace('Main');
   };
 
   return (
     <View style={styles.container}>
       <Image 
-        source={require('../../assets/images/backgrounds/city.png')} // Substitua pelo caminho correto da imagem
+        source={require('../../assets/images/backgrounds/city.png')} 
         style={styles.image}
       />
       <Text style={styles.title}>Bem-vindo ao SafeTrack!</Text>

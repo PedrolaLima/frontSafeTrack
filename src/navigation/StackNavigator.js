@@ -1,11 +1,10 @@
-import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import LoginScreen from '../screens/LoginScreen';
-import HomeScreen from '../screens/HomeScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import WelcomeScreen from '../screens/WelcomeScreen'; 
-
+import ProfileEditScreen from '../screens/ProfileEditScreen'; 
+import DrawerNavigator from './DrawerNavigator';
 
 const Stack = createStackNavigator();
 
@@ -24,13 +23,18 @@ export default function StackNavigator() {
           options={{ headerShown: false }} 
         />
         <Stack.Screen 
-          name="Home" 
-          component={HomeScreen} 
-          options={{ headerShown: true }}
-        />
-        <Stack.Screen 
           name="Register" 
           component={RegisterScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="ProfileEdit" 
+          component={ProfileEditScreen} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Main"
+          component={DrawerNavigator}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
