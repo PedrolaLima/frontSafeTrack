@@ -14,7 +14,7 @@ export default function ProfileScreen({ navigation }) {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.header}>
-            <Text style={styles.title}>Safety Profile</Text>
+            <Text style={styles.title}>Safe Profile</Text>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
               <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
