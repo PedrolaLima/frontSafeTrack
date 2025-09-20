@@ -18,18 +18,24 @@ const DUMMY_POSTS = [
     user: "Anonymous user",
     avatar: "https://randomuser.me/api/portraits/men/1.jpg",
     time: "Just now",
+    crimeType: "Roubo a mão armada",
+    location: "Av. Paulista, 1578",
+    date: "15/10/2023",
     image:
       "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=400&q=80",
-    desc: "Stay informed about your surroundings",
+    desc: "Dois indivíduos em uma moto abordaram pedestres na calçada. Levaram celulares e carteiras. Aconteceu por volta das 22h.",
   },
   {
     id: "2",
     user: "User B",
     avatar: "https://randomuser.me/api/portraits/women/2.jpg",
     time: "5 min ago",
+    crimeType: "Furto de veículo",
+    location: "Rua Augusta, 900",
+    date: "14/10/2023",
     image:
       "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80",
-    desc: "Saw something suspicious near the park.",
+    desc: "Carro arrombado durante a madrugada. Levaram o estepe e outros pertences que estavam no interior do veículo.",
   },
 ];
 
@@ -37,7 +43,7 @@ export default function HomeScreen({ navigation }) {
   const [posts] = useState(DUMMY_POSTS);
 
   const renderPost = ({ item }) => (
-    <View style={styles.feedCard}>
+    <TouchableOpacity style={styles.feedCard} onPress={() => navigation.navigate('PostDetail', { post: item })}>
       <View style={styles.feedHeader}>
         <Image source={{ uri: item.avatar }} style={styles.feedAvatar} />
         <View style={{ flex: 1 }}>
@@ -48,19 +54,26 @@ export default function HomeScreen({ navigation }) {
           <Icon name="more-vertical" size={20} color="#333" />
         </TouchableOpacity>
       </View>
+      <View style={styles.crimeInfoContainer}>
+        <Text style={styles.crimeType}>{item.crimeType}</Text>
+        <Text style={styles.crimeDetails}><Icon name="map-pin" size={14} /> {item.location}</Text>
+        <Text style={styles.crimeDetails}><Icon name="calendar" size={14} /> {item.date}</Text>
+      </View>
       <Image source={{ uri: item.image }} style={styles.feedImage} />
       <View style={styles.feedFooter}>
-        <Text style={styles.feedDesc}>{item.desc}</Text>
-        <TouchableOpacity>
-          <Text style={styles.feedMore}>View more</Text>
+        <Text style={styles.feedDesc} numberOfLines={1} ellipsizeMode="tail">
+          {item.desc}
+        </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('PostDetail', { post: item })}>
+          <Text style={styles.feedMore}>Ler mais</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.feedActions}>
-        <Icon name="heart" size={20} style={styles.feedIcon} />
+        <Icon name="arrow-up" size={20} style={styles.feedIcon} />
         <Icon name="message-circle" size={20} style={styles.feedIcon} />
         <Icon name="share-2" size={20} style={styles.feedIcon} />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -73,27 +86,12 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Report input */}
-      <View style={styles.reportRow}>
-        <TouchableOpacity onPress={() => navigation.navigate("ProfileView")}>
-          <Image
-            source={{ uri: "https://randomuser.me/api/portraits/men/1.jpg" }}
-            style={styles.avatar}
-          />
-        </TouchableOpacity>
-        <TextInput
-          style={styles.reportInput}
-          placeholder="Report a crime or share safety tips"
-          placeholderTextColor="#888"
-        />
-      </View>
-
       {/* Feed posts */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
         renderItem={renderPost}
-        contentContainerStyle={{ paddingBottom: 90 }}
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: 90 }}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
@@ -123,29 +121,6 @@ const styles = StyleSheet.create({
     color: "#111",
     zIndex: 0,
   },
-  reportRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    marginRight: 10,
-  },
-  reportInput: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
   feedCard: {
     backgroundColor: "#fff",
     marginHorizontal: 16,
@@ -166,6 +141,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 10,
   },
+  crimeInfoContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 10,
+  },
+  crimeType: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  crimeDetails: {
+    fontSize: 14,
+    color: '#555',
+  },    
   feedUser: {
     fontWeight: "bold",
     fontSize: 15,
@@ -178,7 +166,6 @@ const styles = StyleSheet.create({
   feedImage: {
     width: "100%",
     height: 160,
-    marginTop: 10,
     borderRadius: 8,
   },
   feedFooter: {
@@ -187,20 +174,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#ededed",
   },
   feedDesc: {
     fontSize: 14,
     color: "#222",
-    fontWeight: "500",
-    flex: 1,
-    flexWrap: "wrap",
+    flex: 1, // Permite que a descrição ocupe o espaço disponível
+    marginRight: 8, // Adiciona um espaço antes do "Ler mais"
   },
   feedMore: {
     color: "#007bff",
     fontWeight: "bold",
-    fontSize: 13,
-    marginLeft: 8,
+    fontSize: 14,
   },
   feedActions: {
     flexDirection: "row",
