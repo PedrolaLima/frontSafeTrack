@@ -1,12 +1,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import AppFooter from './AppFooter';
 
 export default function AppLayout({ children }) {
   return (
     <View style={styles.container}>
       {children}
-      <AppFooter />
     </View>
   );
 }

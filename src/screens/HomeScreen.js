@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 30,
+    paddingTop: 40,
     paddingBottom: 8,
     backgroundColor: "#fff",
     position: "relative",
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    paddingTop: 20,
+    paddingTop: 30,
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 20,
@@ -178,8 +178,8 @@ const styles = StyleSheet.create({
   feedDesc: {
     fontSize: 14,
     color: "#222",
-    flex: 1, // Permite que a descrição ocupe o espaço disponível
-    marginRight: 8, // Adiciona um espaço antes do "Ler mais"
+    flex: 1,
+    marginRight: 8, 
   },
   feedMore: {
     color: "#007bff",
