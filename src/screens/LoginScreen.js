@@ -1,23 +1,58 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { login } from '../api';
+import { saveToken } from "../utils/secureStore";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    console.log('Email:', email);
-    console.log('Password:', password);
-    navigation.navigate('Welcome');
+  const validate = () => {
+    setError('');
+    if (!email.includes("@") || !email.includes(".")) {
+      setError("Email inválido.");
+      return false;
+    }
+
+    if (!password || password.length < 4 || password.length > 20) {
+      setError("Senha deve ter entre 4 a 20 caracteres.");
+      return false;
+    }
+
+    return true;
   };
 
-  const handleRegister = () => {
-    navigation.navigate('Register');
+  const handleLogin = async () => {
+    if (!validate()) return;
+
+    try {
+      setLoading(true);
+      setError(''); 
+      
+      const data = await login(email, password);
+
+      // salva o token
+      await saveToken(data.access_token);
+
+      console.log("Token salvo!");
+      navigation.navigate('Welcome');
+    } catch (err) {
+      console.log('Erro de Login:', err.message);
+      setError(err.message || "Falha desconhecida ao tentar logar.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  //const handleRegister = () => {
+  //  navigation.navigate('Register');
+  //  console.log('Navegar para Registro');
+  //};
 
   return (
     <View style={styles.container}>
-      <Image source={require('../../assets/images/logos/logo.png')} style={styles.logo} />
       <Text style={styles.brand}>SafeTrack</Text>
       <Text style={styles.title}>Login</Text>
       <View style={styles.card}>
@@ -42,11 +77,19 @@ export default function LoginScreen({ navigation }) {
         <TouchableOpacity>
           <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Logar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.registerButton]} onPress={handleRegister}>
-          <Text style={[styles.buttonText, styles.registerButtonText]}>Cadastrar</Text>
+        
+        {error ? <Text style={styles.errorMessage}>{error}</Text> : null}
+
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={handleLogin} 
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Logar</Text>
+          )}
         </TouchableOpacity>
       </View>
       <Text style={styles.footer}>© 2023 SafeTrack. All rights reserved.</Text>
@@ -110,6 +153,12 @@ const styles = StyleSheet.create({
     color: '#007BFF',
     textAlign: 'right',
     marginBottom: 15,
+  },
+  errorMessage: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 10,
+    fontWeight: 'bold',
   },
   button: {
     width: '100%',
