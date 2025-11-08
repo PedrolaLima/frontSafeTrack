@@ -11,14 +11,21 @@ import ProfileViewScreen from "../screens/ProfileViewScreen";
 import MapScreen from "../screens/MapScreen";
 import MyNeighborhoodScreen from "../screens/Neighborhood";
 
+import { deleteToken } from "../utils/secureStore";
 const Drawer = createDrawerNavigator();
 
 function CustomDrawerContent(props) {
-  const handleLogout = () => {
-    props.navigation.reset({
-      index: 0,
-      routes: [{ name: "Login" }],
-    });
+  const handleLogout = async () => {
+    try {
+      await deleteToken();
+
+      props.navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (e) {
+      console.log("Erro ao realizar logout:", e);
+    }
   };
 
   return (

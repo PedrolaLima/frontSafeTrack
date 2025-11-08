@@ -1,7 +1,9 @@
 import { getToken } from "../utils/secureStore";
-import { API_URL} from '@env'
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export async function login(email, password) {
+
   const res = await fetch(`${API_URL}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
