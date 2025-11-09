@@ -53,6 +53,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Image source={require('../../assets/images/logos/logo.png')} style={styles.logo} />
       <Text style={styles.brand}>SafeTrack</Text>
       <Text style={styles.title}>Login</Text>
       <View style={styles.card}>

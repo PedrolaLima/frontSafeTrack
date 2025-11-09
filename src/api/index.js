@@ -20,6 +20,38 @@ export async function login(email, password) {
   return data;
 }
 
+export async function createUser(dto, role) {
+  const token = await getToken();
+
+  let endpoint = "";
+
+  if (role === "ADMIN") {
+    endpoint = "/user/representante";
+  } else if (role === "REPRESENTANTE") {
+    endpoint = "/user/morador";
+  } else {
+    throw new Error("Usuário sem permissão para cadastrar.");
+  }
+
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(dto),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "Erro ao criar usuário");
+  }
+
+  return data;
+}
+
+
 // request GET autenticada (server)
 export async function getUserProfile() {
   const token = await getToken();

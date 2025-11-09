@@ -1,24 +1,41 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  Image,
   StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
   SafeAreaView,
+  TouchableOpacity,
 } from "react-native";
+
 import AppLayout from "../components/AppLayout";
 import HamburgerMenu from "../components/HamburgerMenu";
 
+import { deleteToken } from "../utils/secureStore";
+import { useUser } from "../hooks/useUser";
+
 export default function ProfileViewScreen({ navigation }) {
-  // Dados fictícios
-  const user = {
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    firstName: "John",
-    lastName: "Doe",
-    dob: "25-09-1990",
-    email: "john.doe@mail.com",
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    useUser();
+  }, []);
+
+  const handleLogout = async () => {
+    await deleteToken();
+    navigation.replace("Login");
   };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <SafeAreaView style={styles.safe}>
+          <ActivityIndicator size="large" />
+        </SafeAreaView>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -28,19 +45,24 @@ export default function ProfileViewScreen({ navigation }) {
           <Text style={styles.logo}>SafeTrack</Text>
           <View style={{ width: 28 }} />
         </View>
-        {/* Espaço maior entre header e título */}
-        <View style={{ height: 28 }} />
+
+        <View style={{ height: 30 }} />
+
         <Text style={styles.profileTitle}>Meu Perfil</Text>
-        {/* Espaço maior abaixo do título */}
-        <View style={{ height: 18 }} />
-        <View style={styles.centered}>
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          <Text style={styles.name}>
-            {user.firstName} {user.lastName}
-          </Text>
-          <Text style={styles.info}>Nascimento: {user.dob}</Text>
-          <Text style={styles.info}>Email: {user.email}</Text>
-        </View>
+
+        <View style={{ height: 20 }} />
+
+        {user ? (
+          <View style={styles.centered}>
+            <Text style={styles.name}>
+              {user.firstName} {user.lastName}
+            </Text>
+            <Text style={styles.info}>Email: {user.email}</Text>
+          </View>
+        ) : (
+          <Text style={{ textAlign: "center" }}>Usuário não encontrado</Text>
+        )}
+
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={styles.editButton}
@@ -48,13 +70,9 @@ export default function ProfileViewScreen({ navigation }) {
           >
             <Text style={styles.editButtonText}>Editar Perfil</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => {
-              /* lógica de remoção do perfil */
-            }}
-          >
-            <Text style={styles.removeButtonText}>Remover Perfil</Text>
+
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Sair</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -95,14 +113,7 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: "center",
     marginBottom: 36,
-    width: "100%", // garante centralização em telas largas
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 18,
-    marginTop: 8,
+    width: "100%",
   },
   name: {
     fontSize: 22,
@@ -136,7 +147,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 15,
   },
-  removeButton: {
+  logoutButton: {
     backgroundColor: "#fff",
     borderRadius: 20,
     paddingVertical: 8,
@@ -146,7 +157,7 @@ const styles = StyleSheet.create({
     borderColor: "#d32f2f",
     minWidth: 120,
   },
-  removeButtonText: {
+  logoutButtonText: {
     color: "#d32f2f",
     fontWeight: "bold",
     fontSize: 15,
