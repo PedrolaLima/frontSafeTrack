@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,28 +9,36 @@ import {
   SafeAreaView,
   ScrollView,
   Platform,
-  Alert,
+  Alert,  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { useUser } from '../hooks/useUser';
 
 export default function ProfileEditScreen({ navigation }) {
-  // Dados iniciais (poderiam vir do seu estado global ou API)
-  const initialUser = {
-    avatar: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=facearea&w=256&h=256&facepad=2.5',
-    firstName: 'John',
-    lastName: 'Doe',
-    dob: new Date(1990, 8, 25), // Mês 8 = Setembro (0-indexado)
-    email: 'john.doe@mail.com',
-  };
+  const { user, loading: userLoading } = useUser();
 
-  const [avatarSource, setAvatarSource] = useState({ uri: initialUser.avatar });
-  const [firstName, setFirstName] = useState('John');
-  const [lastName, setLastName] = useState('Doe');
-  const [dob, setDob] = useState(initialUser.dob);
-  const [email, setEmail] = useState('john.doe@mail.com');
+  const [avatarSource, setAvatarSource] = useState(null);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [dob, setDob] = useState(new Date());
+  const [email, setEmail] = useState('');
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      // O backend retorna 'name', vamos dividi-lo
+      const nameParts = user.name ? user.name.split(' ') : ['', ''];
+      setFirstName(nameParts[0] || '');
+      setLastName(nameParts.slice(1).join(' ') || '');
+      setEmail(user.email || '');
+      // Se o usuário tiver uma foto, use-a
+      if (user.photo) {
+        setAvatarSource({ uri: user.photo });
+      }
+    }
+  }, [user]);
 
   const handleChoosePhoto = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
@@ -52,6 +60,14 @@ export default function ProfileEditScreen({ navigation }) {
     setDob(currentDate);
   };
 
+  if (userLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator style={{ flex: 1 }} size="large" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -64,7 +80,13 @@ export default function ProfileEditScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <TouchableOpacity style={styles.centered} onPress={handleChoosePhoto}>
-          <Image source={avatarSource} style={styles.avatar} />
+          <Image
+            source={
+              avatarSource
+                ? avatarSource
+                : require('../../assets/images/guy_example.jpg')
+            }
+            style={styles.avatar} />
           <Text style={styles.updatePicText}>Alterar foto de perfil</Text>
         </TouchableOpacity>
 

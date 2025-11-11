@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   TouchableOpacity,
+  Image,
 } from "react-native";
 
 import AppLayout from "../components/AppLayout";
@@ -15,12 +16,12 @@ import { deleteToken } from "../utils/secureStore";
 import { useUser } from "../hooks/useUser";
 
 export default function ProfileViewScreen({ navigation }) {
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { user, loading: userLoading } = useUser(); 
 
   useEffect(() => {
-    useUser();
-  }, []);
+    setLoading(userLoading);
+  }, [userLoading]);
 
   const handleLogout = async () => {
     await deleteToken();
@@ -54,6 +55,14 @@ export default function ProfileViewScreen({ navigation }) {
 
         {user ? (
           <View style={styles.centered}>
+            <Image
+              source={
+                user.photo
+                  ? { uri: user.photo }
+                  : require("../../assets/images/guy_example.jpg")
+              }
+              style={styles.profileImage}
+            />
             <Text style={styles.name}>
               {user.firstName} {user.lastName}
             </Text>
@@ -114,6 +123,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 36,
     width: "100%",
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 16,
+    backgroundColor: "#e0e0e0",
   },
   name: {
     fontSize: 22,
