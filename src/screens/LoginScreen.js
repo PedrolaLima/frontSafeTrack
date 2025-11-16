@@ -33,23 +33,27 @@ export default function LoginScreen({ navigation }) {
       
       const data = await login(email, password);
 
-      // salva o token
       await saveToken(data.access_token);
 
       console.log("Token salvo!");
-      navigation.navigate('Welcome');
+
+      if (data.message) {
+        navigation.navigate('Welcome', { firstLoginMessage: data.message });
+      } 
+      else {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
+      }
+
     } catch (err) {
       console.log('Erro de Login:', err.message);
       setError(err.message || "Falha desconhecida ao tentar logar.");
     } finally {
       setLoading(false);
     }
-  };
-
-  //const handleRegister = () => {
-  //  navigation.navigate('Register');
-  //  console.log('Navegar para Registro');
-  //};
+};
 
   return (
     <View style={styles.container}>

@@ -19,7 +19,7 @@ import { useUser } from "../hooks/useUser";
 const Drawer = createDrawerNavigator();
 
 function CustomDrawerContent(props) {
-  const user = useUser(); 
+  const { user } = useUser();
 
   const handleLogout = async () => {
     await deleteToken();

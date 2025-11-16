@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
-export default function WelcomeScreen({ navigation }) {
+export default function WelcomeScreen({ route, navigation }) {
+  const firstLoginMessage = route?.params?.firstLoginMessage;
   const handleContinue = () => {
-    // Navega para o DrawerNavigator, que começa na Home
     navigation.replace('Main');
   };
 
@@ -13,12 +13,20 @@ export default function WelcomeScreen({ navigation }) {
         source={require('../../assets/images/backgrounds/city.png')} 
         style={styles.image}
       />
+      {firstLoginMessage && (
+        <Text style={styles.messageBox}>
+          {firstLoginMessage}
+        </Text>
+      )}
+
       <Text style={styles.title}>Bem-vindo ao SafeTrack!</Text>
+
       <Text style={styles.description}>
         <Text style={styles.bold}>🌟 Reporte crimes</Text> e ajude a tornar sua comunidade mais segura.{"\n"}
         <Text style={styles.bold}>🛡️ Compartilhe informações confiáveis</Text> com outros usuários.{"\n"}
         <Text style={styles.bold}>🗺️ Descubra locais seguros</Text> no mapa e planeje seus trajetos com tranquilidade.
       </Text>
+
       <TouchableOpacity style={styles.button} onPress={handleContinue}>
         <Text style={styles.buttonText}>Começar</Text>
       </TouchableOpacity>
@@ -41,6 +49,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 10,
   },
+
+  messageBox: {
+    backgroundColor: '#fff3cd',
+    color: '#856404',
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffeeba',
+    marginBottom: 20,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
   title: {
     fontSize: 28,
     fontWeight: 'bold',
