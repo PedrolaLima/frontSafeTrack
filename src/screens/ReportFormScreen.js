@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,308 +7,304 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import RNPickerSelect from 'react-native-picker-select';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+import { useUser } from '../hooks/useUser';
+import { createMarker, getUserProfile } from '../api/index';
 
-const crimeTypes = [
-  { label: 'Roubo', value: 'roubo' },
-  { label: 'Furto', value: 'furto' },
-  { label: 'Assalto à mão armada', value: 'assalto' },
-  { label: 'Vandalismo', value: 'vandalismo' },
-  { label: 'Outro', value: 'outro' },
+// Enum crimeType
+const CRIME_TYPES_OPTIONS = [
+  { label: 'Roubo', value: 'ROUBO' },
+  { label: 'Furto', value: 'FURTO' },
+  { label: 'Assalto à Mão Armada', value: 'ASSALTO' },
+  { label: 'Vandalismo', value: 'VANDALISMO' },
+  { label: 'Outro', value: 'OUTRO' },
 ];
 
 export default function ReportFormScreen({ navigation, route }) {
-  const { coordinate } = route.params; // Recebe a coordenada da tela do mapa
+  const { latitude, longitude } = route.params; 
+  const { user } = useUser();
+  const [loadingUserBairro, setLoadingUserBairro] = useState(true);
 
-  const [locationAddress, setLocationAddress] = useState('Carregando endereço...');
-  const [neighborhood, setNeighborhood] = useState('');
-  const [crimeType, setCrimeType] = useState(null);
-  const [date, setDate] = useState(new Date());
-  const [time, setTime] = useState(new Date());
-  const [description, setDescription] = useState('');
+  // form state
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    category: null,
+    dateTime: new Date(),
+  });
+  
+  const [userBairroId, setUserBairroId] = useState(null);
 
-  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
-  const [isTimePickerVisible, setTimePickerVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
-    const fetchAddress = async () => {
-      if (!coordinate) return;
-
-      try {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordinate.latitude},${coordinate.longitude}&key=${GOOGLE_MAPS_API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (data.status === 'OK' && data.results.length > 0) {
-          const best = data.results[0];
-          const comp = best.address_components || [];
-
-          const findByTypes = (types) => {
-            const found = comp.find((c) => types.some((t) => c.types.includes(t)));
-            return found ? found.long_name : null;
-          };
-          
-          const foundNeighborhood = findByTypes(['sublocality_level_1', 'sublocality', 'neighborhood']);
-          const city = findByTypes(['administrative_area_level_2', 'locality']);
-          const streetNumber = findByTypes(['street_number']);
-          const route = findByTypes(['route']);
-
-          const parts = [];
-          if (route) parts.push(route);
-          if (streetNumber) parts.push(streetNumber);
-          if (foundNeighborhood) parts.push(foundNeighborhood);
-          if (city) parts.push(city);
-
-          setNeighborhood(foundNeighborhood || city || '');
-          const display = best.formatted_address || 'Endereço não encontrado';
-          setLocationAddress(display);
-        } else {
-          setLocationAddress('Endereço não encontrado');
+    async function loadUserBairroId() {
+        try {
+            const profile = user?.bairroId ? user : await getUserProfile();
+            
+            if (profile?.bairroId) {
+                setUserBairroId(profile.bairroId);
+            } else {
+                Alert.alert("Erro", "Não foi possível identificar seu bairro. Relatório negado.");
+                navigation.goBack();
+            }
+        } catch (error) {
+            console.error("Erro ao buscar bairro do usuário:", error);
+            Alert.alert("Erro", "Falha ao carregar dados do usuário.");
+            navigation.goBack();
+        } finally {
+            setLoadingUserBairro(false);
         }
-      } catch (error) {
-        console.error('Erro ao buscar endereço:', error);
-        setLocationAddress('Erro ao buscar endereço');
-      }
-    };
+    }
 
-    fetchAddress();
-  }, [coordinate]);
+    loadUserBairroId();
+  }, [user, navigation]);
 
-  const handleReport = () => {
-    if (!crimeType || !description) {
-      Alert.alert('Campos Obrigatórios', 'Por favor, preencha o tipo de crime e a descrição.');
+  // handlers
+  
+  const handlePickerChange = (name, value) => {
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const newDate = new Date(selectedDate);
+      const currentTime = form.dateTime;
+      newDate.setHours(currentTime.getHours());
+      newDate.setMinutes(currentTime.getMinutes());
+      handlePickerChange('dateTime', newDate);
+    }
+  };
+
+  const handleTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      const newTime = new Date(selectedTime);
+      const currentDate = form.dateTime;
+      currentDate.setHours(newTime.getHours());
+      currentDate.setMinutes(newTime.getMinutes());
+      handlePickerChange('dateTime', currentDate); 
+    }
+  };
+
+  const handleReport = async () => {
+    if (!form.title.trim() || !form.category || !form.description.trim()) {
+      Alert.alert('Campos Obrigatórios', 'Preencha o tipo de crime, descrição e o Título/Endereço.'); 
       return;
     }
-    // Lógica para enviar o reporte para a API
-    console.log({
-      coordinate,
-      crimeType,
-      date,
-      time,
-      description,
-      locationAddress,
-    });
-    Alert.alert('Sucesso', 'Seu reporte foi enviado com sucesso!');
-    navigation.popToTop(); // Volta para a tela inicial da pilha
-  };
 
-  const getPageSubtitle = () => {
-    if (!crimeType) {
-      return null; // Não mostra nada se nenhum crime foi selecionado
+    if (form.description.trim().length < 10) {
+      Alert.alert('Descrição Incompleta', 'A descrição deve ter pelo menos 10 caracteres.');
+      return;
     }
-    const crimeLabel = crimeTypes.find(c => c.value === crimeType)?.label || 'Ocorrência';
-    return `${crimeLabel} em ${neighborhood || '(Bairro)'}`;
+
+    if (!user?.id || !userBairroId) {
+      Alert.alert("Erro de Dados", "Dados de usuário/bairro não encontrados.");
+      return;
+    }
+
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      category: form.category,
+      dateTime: form.dateTime.toISOString(),
+      latitude,
+      longitude,
+      userId: user.id,
+      bairroId: userBairroId,
+    };
+    
+    try {
+      await createMarker(payload);
+      Alert.alert("Sucesso", "Ocorrência registrada!");
+      
+      navigation.navigate("Map", { newMarker: { latitude, longitude, reload: true } }); 
+      
+    } catch (err) {
+      const message = err.message || "Ocorreu um erro ao registrar.";
+      Alert.alert("Erro no Registro", message);
+    }
   };
 
-  const pageSubtitle = getPageSubtitle();
+  const selectedCategoryLabel = useMemo(() => {
+    return CRIME_TYPES_OPTIONS.find(c => c.value === form.category)?.label;
+  }, [form.category]);
+
+  if (loadingUserBairro) {
+    return (
+        <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#d32f2f" />
+            <Text style={{ marginTop: 10 }}>Validando seu bairro...</Text>
+        </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+    <View style={styles.container}>
+      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reportar Ocorrência</Text>
-        <View style={styles.headerRightPlaceholder} />
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {pageSubtitle && (
+        {/* SUBTÍTULO */}
+        {selectedCategoryLabel && (
           <View style={styles.subtitleContainer}>
-            <Text style={styles.subtitleText}>{pageSubtitle}</Text>
+            <Text style={styles.subtitleText}>{selectedCategoryLabel}</Text>
           </View>
         )}
+
+        {/* Tipo de Crime */}
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Tipo de Crime</Text>
+          <Text style={styles.label}>* Tipo de Crime</Text>
           <RNPickerSelect
-            onValueChange={(value) => setCrimeType(value)}
-            items={crimeTypes}
-            placeholder={{ label: 'Selecione o tipo de ocorrência...', value: null }}
+            onValueChange={(value) => handlePickerChange('category', value)}
+            value={form.category}
+            items={CRIME_TYPES_OPTIONS}
+            placeholder={{ label: 'Selecione o tipo de crime...', value: null }}
             style={pickerSelectStyles}
-            Icon={() => {
-              return <Icon name="chevron-down" size={20} color="gray" style={styles.pickerIcon} />;
-            }}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Localização</Text>
-          <View style={[styles.input, styles.disabledInput]}>
-            <Text style={styles.locationText}>{locationAddress}</Text>
-          </View>
+          <Text style={styles.label}>* Título (Ex: Vandalismo...)</Text>
+          <TextInput
+            style={styles.input}
+            value={form.title}
+            onChangeText={(text) => handlePickerChange('title', text)}
+            placeholder="Digite o título para a ocorrência"
+            placeholderTextColor="#aaa"
+          />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Data do Ocorrido</Text>
-          <TouchableOpacity style={styles.input} onPress={() => setDatePickerVisible(true)}>
-            <Text>{date.toLocaleDateString('pt-BR')}</Text>
+          <Text style={styles.label}>* Data da Ocorrência</Text>
+          <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <Text>{form.dateTime.toLocaleDateString('pt-BR')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Horário do Ocorrido</Text>
-          <TouchableOpacity style={styles.input} onPress={() => setTimePickerVisible(true)}>
-            <Text>{time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
+          <Text style={styles.label}>* Horário Aproximado</Text>
+          <TouchableOpacity style={styles.input} onPress={() => setShowTimePicker(true)}>
+            <Text>{form.dateTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Descrição</Text>
+          <Text style={styles.label}>* Descrição (mín. 10, máx. 250 caracteres)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="Descreva o que aconteceu..."
-            value={description}
-            onChangeText={setDescription}
+            value={form.description}
+            onChangeText={(text) => handlePickerChange('description', text)}
             multiline
+            maxLength={250}
+            placeholder="Descreva a ocorrência em detalhes (o que, quando, como, quem estava envolvido)."
+            placeholderTextColor="#aaa"
           />
         </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Anexar Mídia (Opcional)</Text>
-          <TouchableOpacity style={styles.mediaButton}>
-            <Icon name="paperclip" size={20} color="#333" />
-            <Text style={styles.mediaButtonText}>Adicionar foto ou vídeo</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.submitButton} onPress={handleReport}>
-          <Text style={styles.submitButtonText}>Reportar</Text>
+        <TouchableOpacity 
+          style={styles.submitButton} 
+          onPress={handleReport}
+          disabled={!form.category || form.description.trim().length < 10 || !form.title.trim()} 
+        >
+          <Text style={styles.submitButtonText}>Confirmar e Enviar</Text>
         </TouchableOpacity>
       </View>
-      {isDatePickerVisible && (
+
+      {showDatePicker && (
         <DateTimePicker
-          value={date}
+          value={form.dateTime}
           mode="date"
-          display="default"
-          onChange={(event, selectedDate) => {
-            setDatePickerVisible(Platform.OS === 'ios');
-            if (selectedDate) {
-              setDate(selectedDate);
-            }
-          }}
+          maximumDate={new Date()} // denies future datas
+          onChange={handleDateChange}
         />
       )}
 
-      {isTimePickerVisible && (
+      {showTimePicker && (
         <DateTimePicker
-          value={time}
+          value={form.dateTime}
           mode="time"
-          display="default"
-          onChange={(event, selectedTime) => {
-            setTimePickerVisible(Platform.OS === 'ios');
-            if (selectedTime) {
-              setTime(selectedTime);
-            }
-          }}
+          is24Hour
+          onChange={handleTimeChange}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fafafa' },
+  container: { flex: 1, backgroundColor: '#fafafa' },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between', // Alinha os itens nas extremidades e centro
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: '#fff',
+    padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    backgroundColor: '#fff'
   },
-  backButton: {
-    padding: 5,
-  },
-  headerTitle: {
-    flex: 1, // Permite que o título ocupe o espaço central
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  headerRightPlaceholder: {
-    width: 24, // Garante que o título fique centralizado
-    padding: 5,
-  },
-  scrollContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 10, // Reduz o padding superior para acomodar o subtítulo
-    paddingBottom: 90, // Aumenta o padding inferior para não ser coberto pelo botão
-  },
-  subtitleContainer: {
-    marginBottom: 25,
-    alignItems: 'center',
-  },
-  subtitleText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    textAlign: 'center',
-  },
+  backButton: { padding: 5 },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 'bold' },
+  scrollContainer: { padding: 20, paddingBottom: 90 },
+  subtitleContainer: { marginBottom: 25, alignItems: 'center' },
+  subtitleText: { fontSize: 20, fontWeight: '700', color: '#d32f2f' },
   formGroup: { marginBottom: 20 },
-  label: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 8 },
+  label: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   input: {
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 1, borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 15,
     height: 50,
     justifyContent: 'center',
+    color: '#333'
   },
-  disabledInput: {
-    backgroundColor: '#f0f0f0', // Cor de fundo apagada
-    borderColor: '#e0e0e0',
-  },
-  locationText: { fontSize: 16, color: '#666' }, // Cor de texto mais suave
-  textArea: { height: 120, textAlignVertical: 'top', paddingTop: 15 },
-  mediaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e9e9e9',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    height: 50,
-    justifyContent: 'center',
-  },
-  mediaButtonText: { marginLeft: 10, fontSize: 16, color: '#333' },
-  footer: {
-    padding: 15,
-    backgroundColor: '#f5f5f5', // Mesma cor de fundo para integrar
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
+  textArea: { height: 120, paddingTop: 12, textAlignVertical: 'top' },
+  footer: { padding: 15, borderTopWidth: 1, borderTopColor: '#eee', backgroundColor: '#fff' },
   submitButton: {
     backgroundColor: '#d32f2f',
     borderRadius: 8,
     height: 50,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
-  pickerIcon: {
-    top: 15,
-    right: 15,
-  },
-  submitButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  submitButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
 });
 
 const pickerSelectStyles = {
   inputIOS: {
-    ...styles.input,
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    height: 50,
+    color: '#333'
   },
   inputAndroid: {
-    ...styles.input,
-    paddingRight: 30, // Garante que o texto não sobreponha o ícone
-  },
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    height: 50,
+    color: '#333'
+  }
 };

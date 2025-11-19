@@ -96,6 +96,27 @@ export async function getPlaceDetailsByApi(placeId) {
     throw err;
   }
 }
+// MARKERS
+export async function createMarker(dto) {
+  const token = await getToken();
+
+  const res = await fetch(`${API_URL}/markers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(dto),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "Erro ao criar marcador");
+  }
+
+  return data;
+}
 
 // GET all markers (last 3 months)
 export async function getAllMarkers() {
