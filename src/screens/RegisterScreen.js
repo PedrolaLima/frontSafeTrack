@@ -14,7 +14,7 @@ export default function RegisterScreen({ navigation }) {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const isAdmin = user?.role === "ADMIN";
-
+  
   const validate = () => {
 
     if (!name || name.length < 3) {
