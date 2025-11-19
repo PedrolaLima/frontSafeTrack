@@ -96,3 +96,58 @@ export async function getPlaceDetailsByApi(placeId) {
     throw err;
   }
 }
+
+// GET all markers (last 3 months)
+export async function getAllMarkers() {
+  const token = await getToken();
+
+  try {
+    const response = await fetch(`${API_URL}/markers`, {
+      method: "GET",
+      headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    });
+
+    if (!response.ok) {
+      throw new Error("Erro ao buscar os marcadores");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao carregar marcadores:", error);
+    return [];
+  }
+}
+
+// BAIRROS
+export async function getBairroCentro(idBairro) {
+  const token = await getToken();
+  const res = await fetch(`${API_URL}/bairro/centro/${idBairro}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Erro ao buscar centroide do bairro.");
+  return await res.json();
+}
+
+export async function getBairroPolygon(idBairro) {
+  const token = await getToken();
+  const res = await fetch(`${API_URL}/bairro/polygon/${idBairro}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Erro ao buscar polígono do bairro.");
+  
+  // O backend retorna { polygon: <GeoJsonPolygon> }. Precisamos do objeto interno.
+  const data = await res.json();
+  return data.polygon; 
+}
+
+export async function getAllBairros() {
+    const token = await getToken();
+    const res = await fetch(`${API_URL}/bairro`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Erro ao buscar lista de bairros.");
+    return await res.json();
+}
