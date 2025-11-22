@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { login } from '../api';
 import { saveToken } from "../utils/secureStore";
@@ -8,6 +8,18 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+        const checkTokenAndRedirect = async () => {
+            const token = await getToken();
+            
+            if (token) {
+                navigation.goBack(); 
+            }
+        };
+
+        checkTokenAndRedirect();
+    }, [navigation]);
 
   const validate = () => {
     setError('');
