@@ -69,6 +69,24 @@ export async function getUserProfile() {
   return data;
 }
 
+export async function getUserById(adminId) {
+    if (!adminId) return;
+
+    const token = await getToken();
+    const res = await fetch(`${API_URL}/user/${adminId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        const errorMessage = data.message || `Erro ao buscar detalhes do representante: Status ${res.status}`;
+        throw new Error(errorMessage);
+    }
+
+    return data;
+}
+
 // PLACESID
 export async function getPlaceDetailsByApi(placeId) {
   const token = await getToken();
@@ -171,4 +189,19 @@ export async function getAllBairros() {
     });
     if (!res.ok) throw new Error("Erro ao buscar lista de bairros.");
     return await res.json();
+}
+
+export async function getBairroDetails(bairroId) {
+    const token = await getToken();
+    const res = await fetch(`${API_URL}/bairro/${bairroId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json();
+    
+    if (!res.ok) {
+        const errorMessage = data.message || `Erro ao buscar detalhes do bairro: Status ${res.status}`;
+        throw new Error(errorMessage);
+    }
+    return data;
 }
