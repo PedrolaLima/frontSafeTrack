@@ -125,8 +125,10 @@ export default function ReportFormScreen({ navigation, route }) {
       await createMarker(payload);
       Alert.alert("Sucesso", "Ocorrência registrada!");
       
-      navigation.navigate("Map", { newMarker: { latitude, longitude, reload: true } }); 
-      
+      navigation.navigate('Main', { 
+        screen: 'Map', // O nome da tela dentro do Drawer
+        params: { newMarker: {latitude, longitude, reload: true} } // Se houver parâmetros
+      });
     } catch (err) {
       const message = err.message || "Ocorreu um erro ao registrar.";
       Alert.alert("Erro no Registro", message);

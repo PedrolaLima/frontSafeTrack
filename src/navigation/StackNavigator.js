@@ -44,11 +44,6 @@ export default function StackNavigator() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="Map"
-            component={MapScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
             name="Report"
             component={ReportScreen}
             options={{ headerShown: false }}

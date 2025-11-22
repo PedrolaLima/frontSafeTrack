@@ -71,7 +71,6 @@ export default function DrawerNavigator() {
       <Drawer.Screen name="ProfileView" component={ProfileViewScreen} options={{ title: "Meu Perfil" }} />
       <Drawer.Screen name="Map" component={MapScreen} options={{ title: "Mapa" }} />
       <Drawer.Screen name="Neighborhood" component={MyNeighborhoodScreen} options={{ title: "Meu Bairro" }} />
-
       <Drawer.Screen name="Register" component={RegisterScreen} options={{ drawerItemStyle: { display: "none" } }}/>
     </Drawer.Navigator>
   );
