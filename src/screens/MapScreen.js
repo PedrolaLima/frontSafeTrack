@@ -54,7 +54,6 @@ export default function MapScreen({ navigation, route }) {
         const markers = await getAllMarkers();
         setAllMarkers(markers);
         setFilteredMarkers(markers);
-        console.log("Marcadores carregados:", markers.length);
     } catch(e) {
         Alert.alert("Erro", "Não foi possível carregar os marcadores de crime.");
     }
@@ -243,11 +242,11 @@ export default function MapScreen({ navigation, route }) {
             style={styles.map}
             initialRegion={mapRegion}
           >
-            {/* RENDERIZAÇÃO MÚLTIPLA PARA SUPORTAR MULTIPOLYGON */}
+            {/* MULTIPOLYGON */}
             {userBairroPolygon.map((polygonCoords, index) => (
                 <Polygon
-                    key={index} // Use o índice como chave, já que as coordenadas são únicas
-                    coordinates={polygonCoords} // Cada item é um array de {lat, lng}
+                    key={index}
+                    coordinates={polygonCoords} // array {lat, lng}
                     strokeWidth={3}
                     strokeColor="rgba(211, 47, 47, 0.8)"
                     fillColor="rgba(211, 47, 47, 0.1)"

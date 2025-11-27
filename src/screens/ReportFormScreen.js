@@ -126,8 +126,8 @@ export default function ReportFormScreen({ navigation, route }) {
       Alert.alert("Sucesso", "Ocorrência registrada!");
       
       navigation.navigate('Main', { 
-        screen: 'Map', // O nome da tela dentro do Drawer
-        params: { newMarker: {latitude, longitude, reload: true} } // Se houver parâmetros
+        screen: 'Map', 
+        params: { newMarker: {latitude, longitude, reload: true} }
       });
     } catch (err) {
       const message = err.message || "Ocorreu um erro ao registrar.";
@@ -150,7 +150,6 @@ export default function ReportFormScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icon name="arrow-left" size={24} color="#000" />
@@ -160,14 +159,12 @@ export default function ReportFormScreen({ navigation, route }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* SUBTÍTULO */}
         {selectedCategoryLabel && (
           <View style={styles.subtitleContainer}>
             <Text style={styles.subtitleText}>{selectedCategoryLabel}</Text>
           </View>
         )}
 
-        {/* Tipo de Crime */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>* Tipo de Crime</Text>
           <RNPickerSelect

@@ -2,7 +2,36 @@ import { getToken } from "../utils/secureStore";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-// LOGIN
+async function fetchWithAuth(endpoint, options = {}) {
+    const token = await getToken();
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers, 
+    };
+
+    const res = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers,
+    });
+    
+    const data = await res.json().catch(() => ({ message: "Resposta não é JSON ou vazia." })); 
+
+    if (res.status === 401) {
+        console.error("Token expirado (401). Redirecionando para login.");
+        onLogoutCallback(); // Aciona o logout global
+        throw new Error("Sessão expirada. Por favor, logue novamente."); 
+    }
+
+    if (!res.ok) {
+        const errorMessage = data.message || `Erro na requisição: Status ${res.status}`;
+        throw new Error(errorMessage);
+    }
+
+    return data;
+}
+
 export async function login(email, password) {
   const res = await fetch(`${API_URL}/login`, {
     method: 'POST',
@@ -22,186 +51,77 @@ export async function login(email, password) {
 
 // CREATE USER
 export async function createUser(dto, role) {
-  const token = await getToken();
+    let endpoint = "";
 
-  let endpoint = "";
+    if (role === "ADMIN") {
+        endpoint = "/user/representante";
+    } else if (role === "REPRESENTANTE") {
+        endpoint = "/user/morador";
+    } else {
+        throw new Error("Usuário sem permissão para cadastrar.");
+    }
 
-  if (role === "ADMIN") {
-    endpoint = "/user/representante";
-  } else if (role === "REPRESENTANTE") {
-    endpoint = "/user/morador";
-  } else {
-    throw new Error("Usuário sem permissão para cadastrar.");
-  }
-
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(dto),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message || "Erro ao criar usuário");
-  }
-
-  return data;
+    return fetchWithAuth(endpoint, {
+        method: "POST",
+        body: JSON.stringify(dto),
+    });
 }
 
-// GET USER PROFILE
 export async function getUserProfile() {
-  const token = await getToken();
-
-  const res = await fetch(`${API_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    }
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) throw new Error(data.message ?? "Erro ao buscar perfil");
-
-  return data;
+  return fetchWithAuth('/me');
 }
 
 export async function getUserById(adminId) {
-    if (!adminId) return;
-
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/user/${adminId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        const errorMessage = data.message || `Erro ao buscar detalhes do representante: Status ${res.status}`;
-        throw new Error(errorMessage);
-    }
-
-    return data;
+    if (!adminId) throw new Error("ID do representante é obrigatório.");
+    return fetchWithAuth(`/user/${adminId}`);
 }
 
-// PLACESID
-export async function getPlaceDetailsByApi(placeId) {
-  const token = await getToken();
+// --- BAIRROS ---
 
-  try {
-    const res = await fetch(
-      `${API_URL}/places/place-details?placeId=${encodeURIComponent(placeId)}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        }
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.message || "Erro ao buscar detalhes do local");
-    }
-
-    return data;
-  } catch (err) {
-    console.error("Erro na busca de detalhes do local:", err);
-    throw err;
-  }
+export async function getAllBairros() {
+    return fetchWithAuth('/bairro');
 }
-// MARKERS
+
+export async function getBairroDetails(bairroId) {
+    if (!bairroId) throw new Error("ID do Bairro é obrigatório.");
+    return fetchWithAuth(`/bairro/${bairroId}`);
+}
+
+export async function getBairroCentro(idBairro) {
+    if (!idBairro) throw new Error("ID do Bairro é obrigatório.");
+    return fetchWithAuth(`/bairro/centro/${idBairro}`);
+}
+
+export async function getBairroPolygon(idBairro) {
+    if (!idBairro) throw new Error("ID do Bairro é obrigatório.");
+    const data = await fetchWithAuth(`/bairro/polygon/${idBairro}`);
+    return data.polygon; 
+}
+
+// CREATE MARKER
 export async function createMarker(dto) {
-  const token = await getToken();
-
-  const res = await fetch(`${API_URL}/markers`, {
+  return fetchWithAuth('/markers', {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(dto),
   });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message || "Erro ao criar marcador");
-  }
-
-  return data;
 }
 
 // GET all markers (last 3 months)
 export async function getAllMarkers() {
-  const token = await getToken();
-
-  try {
-    const response = await fetch(`${API_URL}/markers`, {
-      method: "GET",
-      headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    });
-
-    if (!response.ok) {
-      throw new Error("Erro ao buscar os marcadores");
+    try {
+        return fetchWithAuth('/markers');
+    } catch (error) {
+        console.error("Erro ao carregar marcadores:", error);
+        return []; 
     }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Erro ao carregar marcadores:", error);
-    return [];
-  }
 }
 
-// BAIRROS
-export async function getBairroCentro(idBairro) {
-  const token = await getToken();
-  const res = await fetch(`${API_URL}/bairro/centro/${idBairro}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error("Erro ao buscar centroide do bairro.");
-  return await res.json();
-}
-
-export async function getBairroPolygon(idBairro) {
-  const token = await getToken();
-  const res = await fetch(`${API_URL}/bairro/polygon/${idBairro}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error("Erro ao buscar polígono do bairro.");
-  
-  // O backend retorna { polygon: <GeoJsonPolygon> }. Precisamos do objeto interno.
-  const data = await res.json();
-  return data.polygon; 
-}
-
-export async function getAllBairros() {
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/bairro`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error("Erro ao buscar lista de bairros.");
-    return await res.json();
-}
-
-export async function getBairroDetails(bairroId) {
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/bairro/${bairroId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
-    
-    if (!res.ok) {
-        const errorMessage = data.message || `Erro ao buscar detalhes do bairro: Status ${res.status}`;
-        throw new Error(errorMessage);
+// PLACESID
+export async function getPlaceDetailsByApi(placeId) {
+    try {
+        return fetchWithAuth(`/places/place-details?placeId=${encodeURIComponent(placeId)}`);
+    } catch (err) {
+        console.error("Erro na busca de detalhes do local:", err);
+        throw err;
     }
-    return data;
 }
