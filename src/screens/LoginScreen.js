@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { login } from '../api';
 import { saveToken } from "../utils/secureStore";
@@ -8,6 +8,18 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+        const checkTokenAndRedirect = async () => {
+            const token = await getToken();
+            
+            if (token) {
+                navigation.goBack(); 
+            }
+        };
+
+        checkTokenAndRedirect();
+    }, [navigation]);
 
   const validate = () => {
     setError('');
@@ -33,23 +45,27 @@ export default function LoginScreen({ navigation }) {
       
       const data = await login(email, password);
 
-      // salva o token
       await saveToken(data.access_token);
 
       console.log("Token salvo!");
-      navigation.navigate('Welcome');
+
+      if (data.message) {
+        navigation.navigate('Welcome', { firstLoginMessage: data.message });
+      } 
+      else {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
+      }
+
     } catch (err) {
       console.log('Erro de Login:', err.message);
       setError(err.message || "Falha desconhecida ao tentar logar.");
     } finally {
       setLoading(false);
     }
-  };
-
-  //const handleRegister = () => {
-  //  navigation.navigate('Register');
-  //  console.log('Navegar para Registro');
-  //};
+};
 
   return (
     <View style={styles.container}>

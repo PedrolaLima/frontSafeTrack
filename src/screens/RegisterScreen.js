@@ -6,7 +6,7 @@ import { createUser } from "../api/index";
 import { useUser } from "../hooks/useUser";
 
 export default function RegisterScreen({ navigation }) {
-  const user = useUser(); 
+  const { user } = useUser(); 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [bairroId, setBairroId] = useState("");
@@ -14,7 +14,7 @@ export default function RegisterScreen({ navigation }) {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const isAdmin = user?.role === "ADMIN";
-
+  
   const validate = () => {
 
     if (!name || name.length < 3) {
