@@ -4,14 +4,25 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  Alert,  
+  Alert,
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE, Polygon } from "react-native-maps";
+
+import Icon from 'react-native-vector-icons/FontAwesome'; 
+
+import MapView, { Marker, PROVIDER_GOOGLE, Polygon } from "react-native-maps"; 
 import RNPickerSelect from "react-native-picker-select";
 import HamburgerMenu from "../components/HamburgerMenu"; 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getAllMarkers, getUserProfile, getBairroCentro, getBairroPolygon, getAllBairros } from "../api/index";
+
+import { 
+  getAllMarkers, 
+  getUserProfile, 
+  getBairroCentro, 
+  getBairroPolygon, 
+  getAllBairros,
+  deleteMarker
+} from "../api/index"; 
 
 const DEFAULT_REGION = {
   latitude: -23.6329618,
@@ -21,7 +32,7 @@ const DEFAULT_REGION = {
 };
 
 const crimeTypes = {
-  ROUBO: { label: "Roubo", color: "yellow" },
+  ROUBO: { label: "Roubo", color: "green" },
   FURTO: { label: "Furto", color: "orange" },
   ASSALTO: { label: "Assalto à mão armada", color: "red" },
   VANDALISMO: { label: "Vandalismo", color: "blue" },
@@ -32,6 +43,8 @@ export default function MapScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
 
+  const [currentUserId, setCurrentUserId] = useState(null);
+
   // --- Map and Filter States ---
   const [mapRegion, setMapRegion] = useState(DEFAULT_REGION);
   const [allMarkers, setAllMarkers] = useState([]);
@@ -41,9 +54,10 @@ export default function MapScreen({ navigation, route }) {
   const [endDate, setEndDate] = useState(null);
   const [isStartDatePickerVisible, setStartDatePickerVisible] = useState(false);
   const [isEndDatePickerVisible, setEndDatePickerVisible] = useState(false);
+  const [selectedMarker, setSelectedMarker] = useState(null); 
 
   // --- Neighbor States ---
-  const [userBairroId, setUserBairroId] = useState(null);
+  const [userBairroId, setUserBairroId] = useState(null); // ID do bairro do usuário (representante)
   const [userBairroPolygon, setUserBairroPolygon] = useState([]);
   const [bairrosList, setBairrosList] = useState([]);
   const [selectedBairroId, setSelectedBairroId] = useState(null);
@@ -54,6 +68,8 @@ export default function MapScreen({ navigation, route }) {
         const markers = await getAllMarkers();
         setAllMarkers(markers);
         setFilteredMarkers(markers);
+
+        setSelectedMarker(null); 
     } catch(e) {
         Alert.alert("Erro", "Não foi possível carregar os marcadores de crime.");
     }
@@ -66,6 +82,9 @@ export default function MapScreen({ navigation, route }) {
     async function loadUserData() {
       try {
         const profile = await getUserProfile();
+
+        setCurrentUserId(profile.id);
+
         const bairroId = profile.bairroId;
         
         if (bairroId) {
@@ -142,6 +161,44 @@ export default function MapScreen({ navigation, route }) {
 
   // --- handlers and filters ---
 
+  /**
+   * @description delete selected marker
+   */
+  const handleDeleteMarker = async () => {
+    
+    if (!selectedMarker) return; 
+
+    Alert.alert(
+      "Confirmar Exclusão",
+      `Tem certeza que deseja apagar o reporte de crime "${selectedMarker.title}"?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Apagar",
+          style: "destructive",
+          onPress: async () => {
+            try {            
+              await deleteMarker(selectedMarker.id); 
+
+              // Recarrega lista e limpa a seleção
+              await loadMarkers(); 
+              
+              Alert.alert("Sucesso", "Marcador apagado com sucesso.");
+
+            } catch (error) {
+              console.error("Erro ao apagar marcador:", error);
+              Alert.alert("Erro ao Apagar", error.message || "Não foi possível apagar o marcador.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const handleBairroChange = async (bairroId) => {
     setSelectedBairroId(bairroId);
     if (!bairroId) {
@@ -172,6 +229,21 @@ export default function MapScreen({ navigation, route }) {
     if (selectedDate) {
       type === 'start' ? setStartDate(selectedDate) : setEndDate(selectedDate);
     }
+  };
+
+  /**
+   * @description select and zoom marker
+   */
+  const handleMarkerPress = (marker) => {
+      setSelectedMarker(marker);
+
+      const zoomRegion = {
+          latitude: marker.latitude,
+          longitude: marker.longitude,
+          latitudeDelta: 0.001, 
+          longitudeDelta: 0.005,
+      };
+      mapRef.current?.animateToRegion(zoomRegion, 500);
   };
 
   /**
@@ -224,6 +296,14 @@ export default function MapScreen({ navigation, route }) {
 
     return allPolygonsCoordinates;
   };
+  
+  const isDeleteEnabled = selectedMarker && 
+                         (
+                           // 1. User Morador own the marker
+                           selectedMarker.userId === currentUserId || 
+                           // 2. User Representante manage this neighboorhood
+                           (userBairroId && selectedMarker.bairroId === userBairroId)
+                         );
 
   return (
     <View style={styles.screenContainer}>
@@ -241,6 +321,7 @@ export default function MapScreen({ navigation, route }) {
             provider={PROVIDER_GOOGLE}
             style={styles.map}
             initialRegion={mapRegion}
+            onPress={() => setSelectedMarker(null)}
           >
             {/* MULTIPOLYGON */}
             {userBairroPolygon.map((polygonCoords, index) => (
@@ -253,15 +334,30 @@ export default function MapScreen({ navigation, route }) {
                 />
             ))}
 
-            {filteredMarkers.map((m) => (
-              <Marker
-                key={m.id}
-                coordinate={{ latitude: m.latitude, longitude: m.longitude }}
-                title={m.title}
-                description={m.description}
-                pinColor={crimeTypes[m.category]?.color || "red"}
-              />
-            ))}
+            {filteredMarkers.map((m) => {
+                const crimeType = crimeTypes[m.category];
+                const markerColor = crimeType?.color || "red";
+                const isSelected = selectedMarker?.id === m.id;
+
+                {/*Marker*/}
+                return (
+                    <Marker
+                        key={m.id}
+                        coordinate={{ latitude: m.latitude, longitude: m.longitude }}
+                        title={m.title}
+                        description={m.description}
+                        onPress={() => handleMarkerPress(m)} 
+                    >
+                        <View style={[
+                            styles.customMarkerContainer, 
+                            { backgroundColor: markerColor },
+                            isSelected && { borderColor: 'black', borderWidth: 3 } 
+                        ]}>
+                            <Text style={styles.customMarkerText}>!</Text>
+                        </View>
+                    </Marker>
+                );
+            })}
           </MapView>
         </View>
 
@@ -325,15 +421,34 @@ export default function MapScreen({ navigation, route }) {
           onChange={(event, date) => handleDateChange('end', event, date)}
         />
       )}
-
-      {/* BOTÕES INFERIORES */}
+    
       <View style={styles.bottomButtonsContainer}>
-        <TouchableOpacity style={[styles.bottomButton, { backgroundColor: '#444' }]} onPress={() => navigation.navigate('Home')}>
-          <Text style={styles.bottomButtonText}>Home</Text>
+        
+        <TouchableOpacity 
+          style={[styles.bottomButtonIcon, { backgroundColor: '#444' }]} 
+          onPress={() => navigation.navigate('Home')}
+        >
+          <Icon name="home" size={24} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('Report')}>
+
+        <TouchableOpacity 
+          style={[styles.bottomButtonReport, styles.bottomButton]} 
+          onPress={() => navigation.navigate('Report')}
+        >
           <Text style={styles.bottomButtonText}>Reportar</Text>
         </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[
+            styles.bottomButtonIcon, 
+            isDeleteEnabled ? styles.redDeleteButton : styles.disabledButton 
+          ]} 
+          onPress={handleDeleteMarker}
+          disabled={!isDeleteEnabled}
+        >
+          <Icon name="trash" size={24} color="#fff" />
+        </TouchableOpacity>
+        
       </View>
     </View>
   );
@@ -353,9 +468,76 @@ const styles = StyleSheet.create({
   dateLabel: { fontSize: 14, color: '#666', marginBottom: 5 },
   dateButton: { backgroundColor: "#e0e0e0", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, alignItems: "center" },
   dateButtonText: { color: "#333", fontWeight: "500" },
-  bottomButtonsContainer: { bottom: 30, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 15, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e0e0e0' },
-  bottomButton: { backgroundColor: '#D32F2F', borderRadius: 8, paddingVertical: 12, alignItems: 'center', flex: 1, marginHorizontal: 5 },
-  bottomButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+
+  bottomButtonsContainer: { 
+    position: 'absolute', 
+    bottom: 30, 
+    left: 15, 
+    right: 15, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    backgroundColor: '#fff', 
+    borderRadius: 8,
+    overflow: 'hidden', 
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+  },
+  
+  bottomButton: { 
+    paddingVertical: 12, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    marginHorizontal: 0,
+    borderRadius: 0, 
+  },
+  bottomButtonText: { 
+    color: '#fff', 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
+  
+  bottomButtonReport: {
+    backgroundColor: '#D32F2F', 
+    flex: 2, 
+  },
+
+  bottomButtonIcon: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1, 
+  },
+
+  redDeleteButton: {
+    backgroundColor: '#B71C1C', 
+  },
+
+  disabledButton: {
+    backgroundColor: '#b0b0b0', 
+  },
+  
+  customMarkerContainer: {
+    width: 25,
+    height: 25,
+    borderRadius: 12.5,
+    borderWidth: 2,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 1,
+  },
+  customMarkerText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+    lineHeight: 18, 
+  },
 });
 
 const pickerSelectStyles = StyleSheet.create({
