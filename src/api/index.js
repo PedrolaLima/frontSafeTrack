@@ -1,4 +1,4 @@
-import { getToken } from "../utils/secureStore";
+import { getToken, deleteToken } from "../utils/secureStore";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -20,7 +20,7 @@ async function fetchWithAuth(endpoint, options = {}) {
 
     if (res.status === 401) {
         console.error("Token expirado (401). Redirecionando para login.");
-        onLogoutCallback(); // Aciona o logout global
+        deleteToken();
         throw new Error("Sessão expirada. Por favor, logue novamente."); 
     }
 
@@ -124,4 +124,11 @@ export async function getPlaceDetailsByApi(placeId) {
         console.error("Erro na busca de detalhes do local:", err);
         throw err;
     }
+}
+
+export async function deleteMarker(markerId) {
+    if (!markerId) throw new Error("ID do marcador é obrigatório.");
+    return fetchWithAuth(`/markers/${markerId}`, {
+        method: "DELETE",
+    });
 }
