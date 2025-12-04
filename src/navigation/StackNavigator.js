@@ -58,6 +58,11 @@ export default function StackNavigator() {
             component={PostDetailScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="Map"
+            component={MapScreen}
+            options={{ headerShown: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
