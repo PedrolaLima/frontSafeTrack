@@ -19,26 +19,29 @@ import { useUser } from '../hooks/useUser';
 export default function ProfileEditScreen({ navigation }) {
   const { user, loading: userLoading } = useUser();
 
-  const [avatarSource, setAvatarSource] = useState(null);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const roleImages = {
+    ADMIN: require("../../assets/images/icons/admin.png"),
+    REPRESENTANTE: require("../../assets/images/icons/leader.png"),
+    USER: require("../../assets/images/icons/user.png"),
+  };
+  const imageSource = user?.photo ? { uri: user.photo } : roleImages[user?.role];
+
+  const [avatarSource, setAvatarSource] = useState(imageSource);
+  const [name, setName] = useState('');
   const [dob, setDob] = useState(new Date());
   const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
-      // O backend retorna 'name', vamos dividi-lo
-      const nameParts = user.name ? user.name.split(' ') : ['', ''];
-      setFirstName(nameParts[0] || '');
-      setLastName(nameParts.slice(1).join(' ') || '');
+      setName(user.name || '');
       setEmail(user.email || '');
-      // Se o usuário tiver uma foto, use-a
-      if (user.photo) {
-        setAvatarSource({ uri: user.photo });
-      }
+      setAvatarSource(imageSource);
     }
-  }, [user]);
+  }, [user, imageSource]);
 
   const handleChoosePhoto = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
@@ -52,6 +55,46 @@ export default function ProfileEditScreen({ navigation }) {
         setAvatarSource(source);
       }
     });
+  };
+
+  const handleSaveChanges = async () => {
+    if ((currentPassword && !newPassword) || (!currentPassword && newPassword)) {
+      Alert.alert(
+        'Campos de senha incompletos',
+        'Para alterar a senha, você deve preencher tanto a senha atual como a nova senha.'
+      );
+      return;
+    }
+
+    setIsSaving(true);
+
+    const updateData = {
+      name: name,
+      email: email,
+    };
+
+    if (currentPassword && newPassword) {
+      updateData.currentPassword = currentPassword;
+      updateData.newPassword = newPassword;
+    }
+
+    try {
+      // TODO: Implementar a chamada da API para o backend aqui
+      console.log('Salvando dados:', updateData);
+      // Simular uma chamada de API
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // A lógica de verificação da senha atual será feita no backend.
+      // Se a chamada for bem-sucedida:
+      Alert.alert('Sucesso', 'Seu perfil foi atualizado.');
+      navigation.goBack();
+
+    } catch (error) {
+      // Se o backend retornar um erro (ex: senha atual incorreta)
+      Alert.alert('Erro ao Salvar', error.message || 'Não foi possível atualizar o perfil.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const onDateChange = (event, selectedDate) => {
@@ -81,28 +124,44 @@ export default function ProfileEditScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scroll}>
         <TouchableOpacity style={styles.centered} onPress={handleChoosePhoto}>
           <Image
-            source={
-              avatarSource
-                ? avatarSource
-                : require('../../assets/images/guy_example.jpg')
-            }
-            style={styles.avatar} />
-          <Text style={styles.updatePicText}>Alterar foto de perfil</Text>
+            source={avatarSource || roleImages[user?.role]}
+            style={styles.avatar}
+          />
         </TouchableOpacity>
 
         <View style={styles.form}>
           <Text style={styles.label}>Nome</Text>
-          <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} />
-          <Text style={styles.label}>Sobrenome</Text>
-          <TextInput style={styles.input} value={lastName} onChangeText={setLastName} />
+          <TextInput style={styles.input} value={name} onChangeText={setName} />
           <Text style={styles.label}>Data de Nascimento</Text>
           <TouchableOpacity style={styles.input} onPress={() => setDatePickerVisible(true)}>
             <Text>{dob.toLocaleDateString('pt-BR')}</Text>
           </TouchableOpacity>
           <Text style={styles.label}>Email de Contato</Text>
           <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" />
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Salvar Alterações</Text>
+
+          <Text style={styles.label}>Senha Atual</Text>
+          <TextInput
+            style={styles.input}
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+            placeholder="Deixe em branco para não alterar"
+          />
+          <Text style={styles.label}>Nova Senha</Text>
+          <TextInput
+            style={styles.input}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+            placeholder="Deixe em branco para não alterar"
+          />
+
+          <TouchableOpacity style={styles.button} onPress={handleSaveChanges} disabled={isSaving}>
+            {isSaving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Salvar Alterações</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>

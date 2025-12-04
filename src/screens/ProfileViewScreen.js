@@ -17,7 +17,7 @@ import { useUser } from "../hooks/useUser";
 
 export default function ProfileViewScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
-  const { user, loading: userLoading } = useUser(); 
+  const { user, loading: userLoading } = useUser();
 
   useEffect(() => {
     setLoading(userLoading);
@@ -38,6 +38,13 @@ export default function ProfileViewScreen({ navigation }) {
     );
   }
 
+  const roleImages = {
+    ADMIN: require("../../assets/images/icons/admin.png"),
+    REPRESENTANTE: require("../../assets/images/icons/leader.png"),
+    USER: require("../../assets/images/icons/user.png"),
+  };
+  const imageSource = user?.photo ? { uri: user.photo } : roleImages[user?.role];
+
   return (
     <AppLayout>
       <SafeAreaView style={styles.safe}>
@@ -55,18 +62,21 @@ export default function ProfileViewScreen({ navigation }) {
 
         {user ? (
           <View style={styles.centered}>
-            <Image
-              source={
-                user.photo
-                  ? { uri: user.photo }
-                  : require("../../assets/images/guy_example.jpg")
-              }
-              style={styles.profileImage}
-            />
-            <Text style={styles.name}>
-              {user.firstName} {user.lastName}
-            </Text>
+            {imageSource && (
+              <Image source={imageSource} style={styles.profileImage} />
+            )}
+            <Text style={styles.name}>{user.name}</Text>
             <Text style={styles.info}>Email: {user.email}</Text>
+            <Text style={styles.info}>
+              Cargo:{" "}
+              {
+                {
+                  ADMIN: "Administrador",
+                  USER: "Morador",
+                  REPRESENTANTE: "Representante",
+                }[user.role]
+              }
+            </Text>
           </View>
         ) : (
           <Text style={{ textAlign: "center" }}>Usuário não encontrado</Text>
