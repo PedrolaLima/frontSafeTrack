@@ -23,6 +23,7 @@ import {
   getAllBairros,
   deleteMarker
 } from "../api/index"; 
+import PickerSelectBairro from "../components/PickerSelectBairro";
 
 const DEFAULT_REGION = {
   latitude: -23.6329618,
@@ -363,12 +364,11 @@ export default function MapScreen({ navigation, route }) {
 
         <View style={styles.filterContainer}>
           <Text style={styles.filterTitle}>Bairro:</Text>
-          <RNPickerSelect
-            onValueChange={handleBairroChange}
+          <PickerSelectBairro
             value={selectedBairroId}
-            placeholder={{ label: "Selecione um bairro...", value: null }}
+            onValueChange={handleBairroChange}
             items={bairrosList}
-            style={pickerSelectStyles}
+            placeholder={{ label: "Selecione um bairro...", value: null }}
           />
 
           <Text style={styles.filterTitle}>Tipo de crime:</Text>
