@@ -2,11 +2,12 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Platform } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
 
-export default function PickerSelectBairro({ 
+export default function PickerSelect({ 
   value, 
   onValueChange, 
   items, 
-  placeholder 
+  placeholder,
+  modalTitle = "Selecione uma opção"
 }) {
   const [showModal, setShowModal] = React.useState(false);
   const [selectedLabel, setSelectedLabel] = React.useState("");
@@ -46,7 +47,7 @@ export default function PickerSelectBairro({
                 >
                   <Text style={styles.closeButtonText}>Fechar</Text>
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Selecione um Bairro</Text>
+                <Text style={styles.modalTitle}>{modalTitle}</Text>
                 <View style={{ width: 60 }} />
               </View>
 
