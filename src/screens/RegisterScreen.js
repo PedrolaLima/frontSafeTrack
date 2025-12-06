@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert 
 } from "react-native";
-import { createUser } from "../api/index";
+import RNPickerSelect from "react-native-picker-select";
+import { createUser, getAllBairros } from "../api/index";
 import { useUser } from "../hooks/useUser";
+import PickerSelect from "../components/PickerSelect";
 
 export default function RegisterScreen({ navigation }) {
   const { user } = useUser(); 
@@ -12,8 +14,38 @@ export default function RegisterScreen({ navigation }) {
   const [bairroId, setBairroId] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [bairrosList, setBairrosList] = useState([]);
 
   const isAdmin = user?.role === "ADMIN";
+  
+  useEffect(() => {
+    async function loadBairros() {
+      try {
+        const bairros = await getAllBairros();
+        
+        // sort
+        bairros.sort((a, b) => {
+            const cidadeCompare = a.cidade.localeCompare(b.cidade);
+            if (cidadeCompare !== 0) {
+                return cidadeCompare;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        const bairroOptions = bairros.map(b => ({ 
+            label: `${b.name} - ${b.cidade}`, 
+            value: b.id 
+        }));
+
+        setBairrosList(bairroOptions);
+      } catch (error) {
+        console.error("Erro ao carregar bairros:", error);
+        Alert.alert("Erro", "Não foi possível carregar a lista de bairros.");
+      }
+    }
+
+    loadBairros();
+  }, []);
   
   const validate = () => {
 
@@ -95,14 +127,14 @@ export default function RegisterScreen({ navigation }) {
         />
 
         {isAdmin && (
-          <TextInput
-            style={styles.input}
-            placeholder="ID do Bairro"
-            placeholderTextColor="#aaa"
-            value={bairroId}
-            onChangeText={setBairroId}
-            keyboardType="numeric"
-          />
+          <>
+            <PickerSelect
+              value={bairroId}
+              onValueChange={setBairroId}
+              items={bairrosList}
+              placeholder={{ label: "Selecione um bairro...", value: null }}
+            />
+          </>
         )}
 
         <TextInput
@@ -181,4 +213,9 @@ const styles = StyleSheet.create({
   loginButton: { backgroundColor: "#fff", borderWidth: 1, borderColor: "#000" },
   loginButtonText: { color: "#000" },
   footer: { marginTop: 20, fontSize: 12, color: "#aaa" },
+});
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, color: "black", paddingRight: 30, marginBottom: 15 },
+  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "purple", borderRadius: 8, color: "black", paddingRight: 30, marginBottom: 15 },
 });

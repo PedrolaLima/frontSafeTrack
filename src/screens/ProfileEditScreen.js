@@ -8,12 +8,11 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Platform,
   Alert,  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchImageLibrary } from 'react-native-image-picker';
+import DatePickerModal from '../components/DatePickerModal';
 import { useUser } from '../hooks/useUser';
 
 export default function ProfileEditScreen({ navigation }) {
@@ -97,10 +96,9 @@ export default function ProfileEditScreen({ navigation }) {
     }
   };
 
-  const onDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || dob;
-    setDatePickerVisible(Platform.OS === 'ios');
-    setDob(currentDate);
+  const onDateChange = (selectedDate) => {
+    setDob(selectedDate);
+    setDatePickerVisible(false);
   };
 
   if (userLoading) {
@@ -167,14 +165,14 @@ export default function ProfileEditScreen({ navigation }) {
       </ScrollView>
 
       {isDatePickerVisible && (
-        <DateTimePicker
-          testID="dateTimePicker"
+        <DatePickerModal
+          visible={isDatePickerVisible}
+          onClose={() => setDatePickerVisible(false)}
           value={dob}
+          onDateChange={onDateChange}
+          title="Selecione sua data de nascimento"
+          maximumDate={new Date()}
           mode="date"
-          is24Hour={true}
-          display="default"
-          onChange={onDateChange}
-          maximumDate={new Date()} // Não permite selecionar datas futuras
         />
       )}
     </SafeAreaView>

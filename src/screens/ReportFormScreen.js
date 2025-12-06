@@ -10,11 +10,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import RNPickerSelect from 'react-native-picker-select';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
+import PickerSelect from '../components/PickerSelect';
+import DatePickerModal from '../components/DatePickerModal';
 import { useUser } from '../hooks/useUser';
 import { createMarker, getUserProfile } from '../api/index';
+import TimePickerModal from '../components/TimePickerModal';
 
 // Enum crimeType
 const CRIME_TYPES_OPTIONS = [
@@ -167,12 +168,12 @@ export default function ReportFormScreen({ navigation, route }) {
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>* Tipo de Crime</Text>
-          <RNPickerSelect
+          <PickerSelect
             onValueChange={(value) => handlePickerChange('category', value)}
             value={form.category}
             items={CRIME_TYPES_OPTIONS}
             placeholder={{ label: 'Selecione o tipo de crime...', value: null }}
-            style={pickerSelectStyles}
+            modalTitle="Selecione o tipo de crime"
           />
         </View>
 
@@ -226,20 +227,37 @@ export default function ReportFormScreen({ navigation, route }) {
       </View>
 
       {showDatePicker && (
-        <DateTimePicker
+        <DatePickerModal
+          visible={showDatePicker}
+          onClose={() => setShowDatePicker(false)}
           value={form.dateTime}
+          onDateChange={(date) => {
+            const newDate = new Date(date);
+            const currentTime = form.dateTime;
+            newDate.setHours(currentTime.getHours());
+            newDate.setMinutes(currentTime.getMinutes());
+            handlePickerChange('dateTime', newDate);
+          }}
+          title="Selecione a data da ocorrência"
+          maximumDate={new Date()}
           mode="date"
-          maximumDate={new Date()} // denies future datas
-          onChange={handleDateChange}
         />
       )}
 
       {showTimePicker && (
-        <DateTimePicker
+        <TimePickerModal
+          visible={showTimePicker}
+          onClose={() => setShowTimePicker(false)}
           value={form.dateTime}
-          mode="time"
-          is24Hour
-          onChange={handleTimeChange}
+          onTimeChange={(time) => {
+            const newTime = new Date(time);
+            const currentDate = form.dateTime;
+            currentDate.setHours(newTime.getHours());
+            currentDate.setMinutes(newTime.getMinutes());
+            handlePickerChange('dateTime', currentDate);
+          }}
+          title="Selecione o horário da ocorrência"
+          is24Hour={true}
         />
       )}
     </View>
@@ -284,26 +302,3 @@ const styles = StyleSheet.create({
   },
   submitButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
 });
-
-const pickerSelectStyles = {
-  inputIOS: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    height: 50,
-    color: '#333'
-  },
-  inputAndroid: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    height: 50,
-    color: '#333'
-  }
-};

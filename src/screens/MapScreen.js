@@ -5,15 +5,14 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
+  Platform,
 } from "react-native";
 
 import Icon from 'react-native-vector-icons/FontAwesome'; 
 
 import MapView, { Marker, PROVIDER_GOOGLE, Polygon } from "react-native-maps"; 
-import RNPickerSelect from "react-native-picker-select";
 import HamburgerMenu from "../components/HamburgerMenu"; 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { 
   getAllMarkers, 
@@ -23,6 +22,8 @@ import {
   getAllBairros,
   deleteMarker
 } from "../api/index"; 
+import PickerSelect from "../components/PickerSelect";
+import DatePickerModal from "../components/DatePickerModal";
 
 const DEFAULT_REGION = {
   latitude: -23.6329618,
@@ -225,10 +226,10 @@ export default function MapScreen({ navigation, route }) {
   };
 
   const handleDateChange = (type, event, selectedDate) => {
-    type === 'start' ? setStartDatePickerVisible(false) : setEndDatePickerVisible(false);
     if (selectedDate) {
       type === 'start' ? setStartDate(selectedDate) : setEndDate(selectedDate);
     }
+    type === 'start' ? setStartDatePickerVisible(false) : setEndDatePickerVisible(false);
   };
 
   /**
@@ -363,16 +364,15 @@ export default function MapScreen({ navigation, route }) {
 
         <View style={styles.filterContainer}>
           <Text style={styles.filterTitle}>Bairro:</Text>
-          <RNPickerSelect
-            onValueChange={handleBairroChange}
+          <PickerSelect
             value={selectedBairroId}
-            placeholder={{ label: "Selecione um bairro...", value: null }}
+            onValueChange={handleBairroChange}
             items={bairrosList}
-            style={pickerSelectStyles}
+            placeholder={{ label: "Selecione um bairro...", value: null }}
           />
 
           <Text style={styles.filterTitle}>Tipo de crime:</Text>
-          <RNPickerSelect
+          <PickerSelect
             onValueChange={handleCrimeChange}
             value={selectedCrime}
             placeholder={{ label: "Selecione um tipo de crime...", value: null }}
@@ -380,7 +380,7 @@ export default function MapScreen({ navigation, route }) {
               label: crimeTypes[key].label,
               value: key
             }))}
-            style={pickerSelectStyles}
+            modalTitle="Selecione um tipo de crime"
           />
 
           <Text style={[styles.filterTitle, { marginBottom: 5, marginTop: -15 }]}>Intervalo de tempo:</Text>
@@ -402,25 +402,24 @@ export default function MapScreen({ navigation, route }) {
       </View>
 
       {/* DATE PICKERS */}
-      {isStartDatePickerVisible && (
-        <DateTimePicker
-          value={startDate || new Date()}
-          mode="date"
-          display="default"
-          maximumDate={new Date()}
-          onChange={(event, date) => handleDateChange('start', event, date)}
-        />
-      )}
-      {isEndDatePickerVisible && (
-        <DateTimePicker
-          value={endDate || new Date()}
-          mode="date"
-          display="default"
-          minimumDate={startDate || undefined}
-          maximumDate={new Date()}
-          onChange={(event, date) => handleDateChange('end', event, date)}
-        />
-      )}
+      <DatePickerModal
+        visible={isStartDatePickerVisible}
+        onClose={() => setStartDatePickerVisible(false)}
+        value={startDate}
+        onDateChange={(date) => setStartDate(date)}
+        title="Selecione a data inicial"
+        maximumDate={new Date()}
+      />
+
+      <DatePickerModal
+        visible={isEndDatePickerVisible}
+        onClose={() => setEndDatePickerVisible(false)}
+        value={endDate}
+        onDateChange={(date) => setEndDate(date)}
+        title="Selecione a data final"
+        minimumDate={startDate || undefined}
+        maximumDate={new Date()}
+      />
     
       <View style={styles.bottomButtonsContainer}>
         
@@ -538,9 +537,4 @@ const styles = StyleSheet.create({
     color: '#fff',
     lineHeight: 18, 
   },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: { fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1, borderColor: "gray", borderRadius: 4, color: "black", paddingRight: 30, marginBottom: 15 },
-  inputAndroid: { fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: "purple", borderRadius: 8, color: "black", paddingRight: 30, marginBottom: 15 },
 });
