@@ -5,7 +5,7 @@ import {
 import RNPickerSelect from "react-native-picker-select";
 import { createUser, getAllBairros } from "../api/index";
 import { useUser } from "../hooks/useUser";
-import PickerSelectBairro from "../components/PickerSelectBairro";
+import PickerSelect from "../components/PickerSelect";
 
 export default function RegisterScreen({ navigation }) {
   const { user } = useUser(); 
@@ -128,7 +128,7 @@ export default function RegisterScreen({ navigation }) {
 
         {isAdmin && (
           <>
-            <PickerSelectBairro
+            <PickerSelect
               value={bairroId}
               onValueChange={setBairroId}
               items={bairrosList}
