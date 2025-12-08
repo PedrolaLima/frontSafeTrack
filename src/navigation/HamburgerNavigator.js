@@ -15,6 +15,7 @@ import RegisterScreen from "../screens/RegisterScreen";
 
 import { deleteToken } from "../utils/secureStore";
 import { useUser } from "../hooks/useUser";
+import UserListScreen from "../screens/UserListScreen";
 
 const Drawer = createDrawerNavigator();
 
@@ -33,9 +34,20 @@ function CustomDrawerContent(props) {
     props.navigation.navigate("Register");
   };
 
+  const handleNavigateToUserList = () => {
+    props.navigation.navigate("UserList");
+  };
+
   return (
     <DrawerContentScrollView {...props}>
       <DrawerItemList {...props} />
+
+      {(user?.role === "ADMIN" || user?.role === "REPRESENTANTE") && (
+        <TouchableOpacity onPress={handleNavigateToUserList} style={styles.registerButton}>
+          <Icon name="users" size={22} color="#007bff" />
+          <Text style={styles.registerButtonText}>Gerenciar Usuários</Text>
+        </TouchableOpacity>
+      )}
 
       {user?.role === "ADMIN" && (
         <TouchableOpacity onPress={handleNavigateToRegister} style={styles.registerButton}>
@@ -71,6 +83,7 @@ export default function DrawerNavigator() {
       <Drawer.Screen name="ProfileView" component={ProfileViewScreen} options={{ title: "Meu Perfil" }} />
       <Drawer.Screen name="Map" component={MapScreen} options={{ title: "Mapa" }} />
       <Drawer.Screen name="Neighborhood" component={MyNeighborhoodScreen} options={{ title: "Meu Bairro" }} />
+      <Drawer.Screen name="UserList" component={UserListScreen} options={{ drawerItemStyle: { display: "none" } }} />
       <Drawer.Screen name="Register" component={RegisterScreen} options={{ drawerItemStyle: { display: "none" } }}/>
     </Drawer.Navigator>
   );
