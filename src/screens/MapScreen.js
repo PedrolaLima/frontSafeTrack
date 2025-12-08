@@ -5,7 +5,6 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
-  Platform,
 } from "react-native";
 
 import Icon from 'react-native-vector-icons/FontAwesome'; 

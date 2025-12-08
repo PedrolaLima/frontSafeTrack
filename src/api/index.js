@@ -76,6 +76,32 @@ export async function getUserById(adminId) {
     return fetchWithAuth(`/user/${adminId}`);
 }
 
+export async function getAllUsers() {
+    return fetchWithAuth('/user');
+}
+
+export async function getUsersByBairro() {
+    return fetchWithAuth('/user/bairro');
+}
+
+export async function activateOrDeactivateUser(userId) {
+    if (!userId) throw new Error("ID do usuário é obrigatório.");
+    return fetchWithAuth(`/user/${userId}/activate-deactivate`, {
+        method: "PUT",
+    });
+}
+
+export async function changePassword(email, oldPassword, newPassword) {
+    return fetchWithAuth('/change-password', {
+        method: 'PATCH',
+        body: JSON.stringify({
+            email,
+            oldPassword,
+            newPassword
+        }),
+    });
+}
+
 // --- BAIRROS ---
 
 export async function getAllBairros() {
