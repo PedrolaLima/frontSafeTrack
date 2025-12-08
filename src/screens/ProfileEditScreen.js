@@ -8,12 +8,15 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  Alert,  ActivityIndicator,
+  Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
-import DatePickerModal from '../components/DatePickerModal';
+import Icon from 'react-native-vector-icons/Feather';
 import { useUser } from '../hooks/useUser';
+import { changePassword } from '../api/index';
+const MIN_PASSWORD_LENGTH = 5;
 
 export default function ProfileEditScreen({ navigation }) {
   const { user, loading: userLoading } = useUser();
@@ -31,7 +34,7 @@ export default function ProfileEditScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -56,49 +59,87 @@ export default function ProfileEditScreen({ navigation }) {
     });
   };
 
+  const isPasswordValid = newPassword.length >= MIN_PASSWORD_LENGTH;
+  const isSameCurrentPassword = newPassword === currentPassword;
+  const passwordsMatch = newPassword === confirmNewPassword;
+  
+  const validatePasswordFields = () => {
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+        Alert.alert('Campos Incompletos', 'Para alterar a senha, preencha a Senha Atual, a Nova Senha e a Confirmação.');
+        return false;
+    }
+
+    if(isSameCurrentPassword){
+      Alert.alert('Erro de Senha', `A nova senha é a mesma que a atual.`);
+      return false;
+    }
+
+    if (!isPasswordValid) {
+      Alert.alert('Erro de Senha', `A nova senha deve ter no mínimo ${MIN_PASSWORD_LENGTH} caracteres.`);
+      return false;
+    }
+
+    if (!passwordsMatch) {
+        Alert.alert('Erro de Senha', 'A Nova Senha e a Confirmação não coincidem.');
+        return false;
+    }
+
+    
+    return true;
+  };
+
+  const isSaveButtonEnabled = 
+    isSaving === false && 
+    !!currentPassword && 
+    !!newPassword && 
+    !!confirmNewPassword &&
+    isPasswordValid &&
+    passwordsMatch;
+
+
   const handleSaveChanges = async () => {
-    if ((currentPassword && !newPassword) || (!currentPassword && newPassword)) {
-      Alert.alert(
-        'Campos de senha incompletos',
-        'Para alterar a senha, você deve preencher tanto a senha atual como a nova senha.'
-      );
-      return;
+    
+    const changingPassword = !!currentPassword || !!newPassword || !!confirmNewPassword;
+
+    if (changingPassword && !validatePasswordFields()) {
+      return; 
+    }
+
+    if (!changingPassword) {
+        Alert.alert('Aviso', 'Nenhuma alteração de senha detectada. Voltando...');
+        navigation.goBack();
+        return;
     }
 
     setIsSaving(true);
+    let passwordChangeSuccess = true;
 
-    const updateData = {
-      name: name,
-      email: email,
-    };
+    if (user) {
+      try {
+        await changePassword(email,currentPassword, newPassword);
+        
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword(''); 
 
-    if (currentPassword && newPassword) {
-      updateData.currentPassword = currentPassword;
-      updateData.newPassword = newPassword;
+      } catch (error) {
+        Alert.alert('Erro ao Alterar Senha', error.message || 'Não foi possível alterar a senha. Verifique sua senha atual.');
+        passwordChangeSuccess = false;
+      }
     }
-
-    try {
-      // TODO: Implementar a chamada da API para o backend aqui
-      console.log('Salvando dados:', updateData);
-      // Simular uma chamada de API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // A lógica de verificação da senha atual será feita no backend.
-      // Se a chamada for bem-sucedida:
-      Alert.alert('Sucesso', 'Seu perfil foi atualizado.');
+    
+    setIsSaving(false);
+    
+    if (passwordChangeSuccess) {
+      Alert.alert('Sucesso', 'Sua senha foi atualizada.');
       navigation.goBack();
-
-    } catch (error) {
-      // Se o backend retornar um erro (ex: senha atual incorreta)
-      Alert.alert('Erro ao Salvar', error.message || 'Não foi possível atualizar o perfil.');
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  const onDateChange = (selectedDate) => {
-    setDob(selectedDate);
-    setDatePickerVisible(false);
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || dob;
+    setDatePickerVisible(Platform.OS === 'ios');
+    setDob(currentDate);
   };
 
   if (userLoading) {
@@ -108,6 +149,8 @@ export default function ProfileEditScreen({ navigation }) {
       </SafeAreaView>
     );
   }
+
+  const readOnlyInputStyle = [styles.input, styles.readOnlyInput];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -129,13 +172,22 @@ export default function ProfileEditScreen({ navigation }) {
 
         <View style={styles.form}>
           <Text style={styles.label}>Nome</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} />
-          <Text style={styles.label}>Data de Nascimento</Text>
-          <TouchableOpacity style={styles.input} onPress={() => setDatePickerVisible(true)}>
-            <Text>{dob.toLocaleDateString('pt-BR')}</Text>
-          </TouchableOpacity>
+          <TextInput 
+            style={readOnlyInputStyle} 
+            value={name} 
+            editable={false} // only read
+            placeholder="Carregando nome..."
+          />
           <Text style={styles.label}>Email de Contato</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" />
+          <TextInput 
+            style={readOnlyInputStyle} 
+            value={email} 
+            keyboardType="email-address"
+            editable={false} // only read
+            placeholder="Carregando email..."
+          />
+          
+          <Text style={styles.passwordSectionTitle}>Alterar Senha</Text>
 
           <Text style={styles.label}>Senha Atual</Text>
           <TextInput
@@ -143,18 +195,38 @@ export default function ProfileEditScreen({ navigation }) {
             value={currentPassword}
             onChangeText={setCurrentPassword}
             secureTextEntry
-            placeholder="Deixe em branco para não alterar"
+            placeholder="Digite a senha atual"
           />
+          
           <Text style={styles.label}>Nova Senha</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, (newPassword && !isPasswordValid) && styles.inputError]}
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
-            placeholder="Deixe em branco para não alterar"
+            placeholder={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
           />
+          {newPassword.length > 0 && !isPasswordValid && (
+            <Text style={styles.errorText}>A nova senha deve ter no mínimo {MIN_PASSWORD_LENGTH} caracteres.</Text>
+          )}
 
-          <TouchableOpacity style={styles.button} onPress={handleSaveChanges} disabled={isSaving}>
+          <Text style={styles.label}>Confirmar Nova Senha</Text>
+          <TextInput
+            style={[styles.input, (confirmNewPassword && !passwordsMatch) && styles.inputError]} // error
+            value={confirmNewPassword}
+            onChangeText={setConfirmNewPassword}
+            secureTextEntry
+            placeholder="Repita a nova senha"
+          />
+          {confirmNewPassword.length > 0 && !passwordsMatch && (
+            <Text style={styles.errorText}>As senhas não coincidem.</Text>
+          )}
+
+          <TouchableOpacity 
+            style={[styles.button, !isSaveButtonEnabled && styles.disabledButton]} 
+            onPress={handleSaveChanges} 
+            disabled={!isSaveButtonEnabled} 
+          >
             {isSaving ? (
               <ActivityIndicator color="#fff" />
             ) : (
@@ -163,18 +235,6 @@ export default function ProfileEditScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {isDatePickerVisible && (
-        <DatePickerModal
-          visible={isDatePickerVisible}
-          onClose={() => setDatePickerVisible(false)}
-          value={dob}
-          onDateChange={onDateChange}
-          title="Selecione sua data de nascimento"
-          maximumDate={new Date()}
-          mode="date"
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -194,18 +254,23 @@ const styles = StyleSheet.create({
   },
   centered: { alignItems: 'center', marginVertical: 20 },
   avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 12 },
-  updatePicText: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    color: '#007bff',
-    marginBottom: 20,
-  },
+  
   form: { marginTop: 10, paddingHorizontal: 10 },
   label: {
     fontWeight: 'bold',
     fontSize: 16,
     marginBottom: 8,
     color: '#333',
+  },
+  passwordSectionTitle: {
+      fontWeight: 'bold',
+      fontSize: 18,
+      color: '#111',
+      marginTop: 10,
+      marginBottom: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+      paddingBottom: 5,
   },
   input: {
     borderWidth: 1,
@@ -215,8 +280,27 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: '#fff',
     fontSize: 16,
-    justifyContent: 'center', // Para o TouchableOpacity da data
+    justifyContent: 'center', 
+  },
+  readOnlyInput: { 
+    backgroundColor: '#e9e9e9', 
+    color: '#666',
+    borderColor: '#ccc',
+  },
+  inputError: {
+      borderColor: '#d32f2f',
+      borderWidth: 2,
+  },
+  errorText: {
+      color: '#d32f2f',
+      fontSize: 13,
+      marginTop: -15,
+      marginBottom: 15,
+      paddingHorizontal: 5,
   },
   button: { backgroundColor: '#111', borderRadius: 8, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
+  disabledButton: {
+      backgroundColor: '#aaa',
+  },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });

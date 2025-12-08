@@ -91,6 +91,17 @@ export async function activateOrDeactivateUser(userId) {
     });
 }
 
+export async function changePassword(email, oldPassword, newPassword) {
+    return fetchWithAuth('/change-password', {
+        method: 'PATCH',
+        body: JSON.stringify({
+            email,
+            oldPassword,
+            newPassword
+        }),
+    });
+}
+
 // --- BAIRROS ---
 
 export async function getAllBairros() {
