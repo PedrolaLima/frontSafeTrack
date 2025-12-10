@@ -62,7 +62,6 @@ export default function MapScreen({ navigation, route }) {
   const [bairrosList, setBairrosList] = useState([]);
   const [selectedBairroId, setSelectedBairroId] = useState(null);
 
-
   async function loadMarkers() {
     try {
         const markers = await getAllMarkers();
@@ -189,7 +188,6 @@ export default function MapScreen({ navigation, route }) {
               Alert.alert("Sucesso", "Marcador apagado com sucesso.");
 
             } catch (error) {
-              console.error("Erro ao apagar marcador:", error);
               Alert.alert("Erro ao Apagar", error.message || "Não foi possível apagar o marcador.");
             }
           },
