@@ -21,7 +21,7 @@ import TimePickerModal from '../components/TimePickerModal';
 const CRIME_TYPES_OPTIONS = [
   { label: 'Roubo', value: 'ROUBO' },
   { label: 'Furto', value: 'FURTO' },
-  { label: 'Assalto à Mão Armada', value: 'ASSALTO' },
+  { label: 'Homicídio', value: 'HOMICIDIO' },
   { label: 'Vandalismo', value: 'VANDALISMO' },
   { label: 'Outro', value: 'OUTRO' },
 ];

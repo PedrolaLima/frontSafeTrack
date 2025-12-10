@@ -70,8 +70,12 @@ export default function UserListScreen() {
       } else if (user.role === 'REPRESENTANTE') {
         data = await getUsersByBairro();
       }
-      setUsers(data);
-      setFilteredUsers(data);
+      const loggedUserId = user.id;
+
+      const filteredData = data.filter(u => u.id !== loggedUserId);
+
+      setUsers(filteredData);
+      setFilteredUsers(filteredData);
     } catch (error) {
       Alert.alert('Erro', error.message || 'Não foi possível carregar a lista de usuários.');
       setUsers([]);
